@@ -1,12 +1,13 @@
+last=""
+
 function wiswa () {
-    query=$1
     #if test (count $argv) != 0
     #    set query $argv[1]
     #else
     #    set query (read -p "echo 'query: '")
     #end
 
-    id=$(ia search "subject:'$query'" --parameters "page=1&rows=1" | jq .identifier | tr -d '"')
+    id=$(ia search "subject:'$1'" --parameters "page=1&rows=1" | jq .identifier | tr -d '"')
     if [ "$id" == "" ]
     then
         return
@@ -19,10 +20,10 @@ function wiswa () {
     fi
     file=$(echo $meta | jq "(.files | map(select(.name | test(\"\\\\.(jpg|png)\$\"))) | map(.name))[0]" | tr -d '"')
     ia download $id $file
-    filename=(find $id -type f)
+    filename=$(find $id -type f)
 
     #convert $filename -resize 300x300 $filename
-    curl -F file=@$filename $WEBHOOK_URL -q
+    curl -F file=@$filename $WEBHOOK_URL -q -s > /dev/null
 
     old="$IFS"
     IFS="/"
@@ -32,17 +33,16 @@ function wiswa () {
     done
     IFS=$old
 
-
-    last=""
     for word in $desc
     do
-        echo $word
+        echo $word $last
         if [ "$word" != "$last" ]
         then
-            wiswa $word
             last=$word
+            wiswa $word
         fi
     done
 }
 
-wiswa $argv
+echo $GENESIS
+wiswa "$GENESIS"
