@@ -1,4 +1,5 @@
 last=""
+last2=""
 
 function wiswa () {
     #if test (count $argv) != 0
@@ -7,7 +8,9 @@ function wiswa () {
     #    set query (read -p "echo 'query: '")
     #end
 
-    id=$(ia search "subject:'$1'" --parameters "page=1&rows=1" | jq .identifier | tr -d '"')
+    limit=$(shuf -i 1-30 -n 1)
+    n=$(shuf -i 1-$limit -n 1)
+    id=$(ia search "subject:'$1'" --parameters "page=1&rows=$limit" | shuf -n 1 | jq .identifier | tr -d '"')
     if [ "$id" == "" ]
     then
         return
@@ -19,11 +22,17 @@ function wiswa () {
         return
     fi
     file=$(echo $meta | jq "(.files | map(select(.name | test(\"\\\\.(jpg|png)\$\"))) | map(.name))[0]" | tr -d '"')
+    # "
     ia download $id $file
+    if [ ! -d "$id" ]
+    then
+        return
+    fi
     filename=$(find $id -type f)
 
     #convert $filename -resize 300x300 $filename
     curl -F file=@$filename $WEBHOOK_URL -q -s > /dev/null
+    find . -type d -empty -not -path "./.git/*" | xargs rmdir 2>/dev/null
 
     old="$IFS"
     IFS="/"
@@ -33,13 +42,19 @@ function wiswa () {
     done
     IFS=$old
 
-    for word in $desc
+    words=( $desc )
+    words=( $(shuf -e "${words[@]}") )
+    for word in "${words[@]}"
     do
-        echo $word $last
+        echo $word $last $last2
         if [ "$word" != "$last" ]
         then
-            last=$word
-            wiswa $word
+            if [ "$word" != "$last2" ]
+            then
+                last2=$last
+                last=$word
+                wiswa $word
+            fi
         fi
     done
 }
