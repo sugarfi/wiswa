@@ -21,7 +21,7 @@ function wiswa () {
     then
         return
     fi
-    file=$(echo $meta | jq "(.files | map(select(.name | test(\"\\\\.(jpg|png)\$\"))) | map(.name))[0]" | tr -d '"')
+    file=$(echo $meta | jq "(.files | map(select(.name | test(\"\\\\.(jpg|png|wav|mp3|mp4|ogg|gif|bmp)\$\"))) | map(.name))[0]" | tr -d '"')
     # "
     ia download $id $file
     if [ ! -d "$id" ]
@@ -29,6 +29,21 @@ function wiswa () {
         return
     fi
     filename=$(find $id -type f)
+    if [[ $filename == *mp3 ]]
+    then
+        echo Trimming
+        cp $filename "$filename"2
+        rm $filename
+        ffmpeg -i "$filename"2 -vn -acodec copy -ss 00:00:00 -t 00:00:30 $filename
+        #sox $filename $filename trim 1 00:20
+    fi
+    if [[ $filename == *mp4 ]]
+    then
+        echo Trimming
+        cp $filename "$filename"2
+        rm $filename
+        ffmpeg -i "$filename"2 -ss 00:00:00 -t 00:00:30 -vcodec copy -acodec copy $filename
+    fi
 
     #convert $filename -resize 300x300 $filename
     curl -F file=@$filename $WEBHOOK_URL -q -s > /dev/null
